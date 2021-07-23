@@ -1,0 +1,10 @@
+[package]
+name = "abc"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+abc-macros = { path = "./abc-macros" }
+
+[dev-dependencies]
+trybuild = "1.0"

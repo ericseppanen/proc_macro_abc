@@ -1,0 +1,5 @@
+error: Failed to read file
+ --> $DIR/words_fail.rs:4:25
+  |
+4 |     let _ = file_words!("tests/words/nonexistent");
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^

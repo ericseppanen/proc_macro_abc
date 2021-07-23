@@ -1,0 +1,5 @@
+error: That name is not allowed
+ --> $DIR/describe_fail.rs:4:8
+  |
+4 | struct OhNo;
+  |        ^^^^
