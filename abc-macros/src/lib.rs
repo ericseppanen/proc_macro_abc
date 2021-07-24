@@ -4,7 +4,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{parse_macro_input, DeriveInput, LitStr};
 
 /// Derive the `DescribeStruct` trait on a struct (or enum).
@@ -26,17 +26,25 @@ pub fn derive_describe_struct(input: TokenStream) -> TokenStream {
     // parse the input into a DeriveInput syntax tree
     let input = parse_macro_input!(input as DeriveInput);
 
-    // Retrieve the Ident that is the struct name
+    // Retrieve the Ident that is the struct name, and convert it to a String.
     let name = &input.ident;
+    let name_str = name.to_string();
 
-    // TODO #2: Return a compile error if the name of the struct is "OhNo"
+    // Return a compile error if the name of the struct is "OhNo"
+    if name_str == "OhNo" {
+        //panic!("That name is not allowed");
+        return quote_spanned! {
+            name.span() =>
+            compile_error!("That name is not allowed");
+        }
+        .into();
+    }
 
     // Generate the output tokens.
-    // TODO #1: return the correct result instead of "STRUCT_NAME_HERE"
     let expanded = quote! {
         impl DescribeStruct for #name {
             fn struct_name(&self) -> &'static str {
-                "STRUCT_NAME_HERE"
+                #name_str
             }
         }
     };

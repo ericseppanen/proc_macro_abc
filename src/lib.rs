@@ -16,14 +16,11 @@ mod describe_tests {
         assert_eq!(Foo.struct_name(), "Foo");
     }
 
-    // Uncomment this to work on the graceful error.
-    /*
     #[test]
     fn describe_fail() {
         let t = trybuild::TestCases::new();
         t.compile_fail("tests/build_failures/describe_fail.rs");
     }
-    */
 }
 
 // Uncomment this to work on the file_words! macro.
