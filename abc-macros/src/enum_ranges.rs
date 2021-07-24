@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use syn::punctuated::Punctuated;
 use syn::{braced, Attribute, Ident, LitInt, Token};
 
 /// This represents macro input syntax for a single variant range.
@@ -26,13 +27,15 @@ impl Parse for NamedRange {
         let start = start_lit.base10_parse::<u64>()?;
         // Optional: there may be a ".." followed by another integer.
         // If dots are present, the integer must be too.
-
-        // TODO: finish this function. Need to parse the optional
-        // "..N" (where N is an integer literal).
-        // The parse_one_range unit test may help.
-
-        // Placeholder value, to be replaced by the real implementation.
-        let end = None;
+        let dots = input.parse::<Token![..]>().ok();
+        let end = match dots {
+            None => None,
+            Some(_) => {
+                let end_lit: LitInt = input.parse()?;
+                let end = end_lit.base10_parse::<u64>()?;
+                Some(end)
+            }
+        };
 
         Ok(NamedRange { name, start, end })
     }
@@ -46,15 +49,16 @@ struct NamedRangeList {
 
 /// Parse a `NamedRangeList` from macro input.
 impl Parse for NamedRangeList {
-    fn parse(_input: ParseStream) -> syn::parse::Result<Self> {
-        // TODO: Parse a series of NamedRange inputs, separated by commas.
+    fn parse(input: ParseStream) -> syn::parse::Result<Self> {
+        // syn has some special functions for handling Punctuated syntax.
+        // Use those rather than try to parse each token ourselves.
+        type PunctList = Punctuated<NamedRange, Token![,]>;
+        let id_list = PunctList::parse_terminated(input)?;
 
-        // A placeholder value, to be replaced by the actual implementation.
-        let list = vec![];
         Ok(NamedRangeList {
             // We don't need the punctuation; just iterate then collect
             // to pull the NamedRange elements into a Vec.
-            list,
+            list: id_list.into_iter().collect(),
         })
     }
 }
@@ -114,8 +118,81 @@ impl Parse for RangedEnum {
 /// consumes macro input syntax, while ToTokens emits the macro output).
 ///
 impl ToTokens for RangedEnum {
-    fn to_tokens(&self, _tokens: &mut TokenStream) {
-        // TODO: implement this!
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let attributes = &self.attributes;
+        let name = &self.name;
+
+        // Build a Vec<TokenStream>. Each element is one variant, for use
+        // constructing the enum.
+        let variants = self
+            .variants
+            .list
+            .iter()
+            .map(|named_range| {
+                let name = &named_range.name;
+                quote! { #name, }
+            })
+            .collect::<Vec<_>>();
+
+        // Build a Vec<TokenStream>. Each element is the "if" statement that
+        // handles one variant, in the From<u64> implementation.
+        let branches = self
+            .variants
+            .list
+            .iter()
+            .enumerate()
+            .map(|(n, named_range)| {
+                let variant_name = &named_range.name;
+                // Generate the "else" token that's needed in between each "if".
+                // The first "if" doesn't need one.
+                let else_token = match n {
+                    0 => TokenStream::new(),
+                    _ => quote! { else },
+                };
+
+                // Generate the actual "if" logic. There are two cases to handle:
+                // 1. The range is a single integer.
+                // 2. The range is [start..end].
+                let test_tokens = match (named_range.start, named_range.end) {
+                    (start, None) => quote! {
+                        if x == #start { Ok(#name::#variant_name) }
+                    },
+                    (start, Some(end)) => quote! {
+                        if (#start .. #end).contains(&x) { Ok(#name::#variant_name) }
+                    },
+                };
+
+                // Assemble the tokens for this variant.
+                quote! {
+                    #else_token
+                    #test_tokens
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // Assemble the final macro output. This is two parts:
+        // 1. The enum definition.
+        // 2. The From<u64> impl.
+        //
+        let new_tokens = quote! {
+            #(#attributes)*
+            enum #name {
+                #(#variants)*
+            }
+
+            impl ::core::convert::TryFrom<u64> for #name {
+                type Error = u64;
+
+                fn try_from(x: u64) -> Result<Self, u64> {
+                    #(#branches)*
+                    else { Err(x) }
+                }
+            }
+        };
+
+        // ToTokens::to_tokens works by appending its result to an existing
+        // TokenStream.
+        tokens.extend(new_tokens);
     }
 }
 
@@ -126,7 +203,6 @@ mod tests {
     use quote::format_ident;
 
     #[test]
-    #[ignore]
     fn parse_one_range() {
         let ranged: NamedRange = syn::parse_str("Foo: 1..10").unwrap();
 
@@ -151,7 +227,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parse_range_list() {
         let ranges: NamedRangeList = syn::parse_str("Foo: 1..10, Bar: 11").unwrap();
 
@@ -173,7 +248,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parse_ranges() {
         let ranged: RangedEnum = syn::parse_str("MyRanges { Foo: 1..10, Bar: 11 }").unwrap();
         assert_eq!(ranged.name, "MyRanges");

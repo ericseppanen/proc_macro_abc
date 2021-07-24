@@ -34,8 +34,6 @@ mod words_tests {
     }
 }
 
-// Uncomment this to work on the enum_ranges! macro.
-/*
 #[cfg(test)]
 mod enum_ranges_tests {
     use super::*;
@@ -60,4 +58,3 @@ mod enum_ranges_tests {
         LogTen::try_from(101).unwrap_err();
     }
 }
-*/
