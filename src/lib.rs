@@ -23,8 +23,6 @@ mod describe_tests {
     }
 }
 
-// Uncomment this to work on the file_words! macro.
-/*
 #[cfg(test)]
 mod words_tests {
     use super::*;
@@ -35,7 +33,6 @@ mod words_tests {
         assert_eq!(words, ["The", "turbofish", "remains", "undefeated."]);
     }
 }
-*/
 
 // Uncomment this to work on the enum_ranges! macro.
 /*

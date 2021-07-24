@@ -5,6 +5,8 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::{quote, quote_spanned, ToTokens};
+use std::fs::File;
+use std::io::Read;
 use syn::{parse_macro_input, DeriveInput, LitStr};
 
 /// Derive the `DescribeStruct` trait on a struct (or enum).
@@ -61,14 +63,47 @@ pub fn derive_describe_struct(input: TokenStream) -> TokenStream {
 pub fn file_words(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Since the macro input already matches an existing rust syntax item (LitStr),
     // we can have syn parse it for us.
-    let _filename = parse_macro_input!(tokens as LitStr);
+    let filename = parse_macro_input!(tokens as LitStr);
 
-    // TODO: read the file, split words, and then produce the right output.
+    // Read the file into a string.
+    let file_result = File::open(filename.value()).and_then(|mut file| {
+        let mut buf = String::new();
+        file.read_to_string(&mut buf).map(|_| buf)
+    });
 
-    // A placeholder output. Replace this with the real implementation.
-    let expanded = quote! {
-        []
+    // Handle any I/O errors that happened while opening or reading the file.
+    // They should result in a compile error.
+    let file_data = match file_result {
+        Ok(data) => data,
+        Err(_e) => {
+            // We want to return a compile_error. But we also want to ensure
+            // that the tokens returned don't trigger any additional compiler
+            // errors, so we will put our compile_error inside an array.
+            // Try removing the [] brackets to see what happens without them.
+            return quote_spanned! {
+                filename.span() =>
+                [ compile_error!("Failed to read file") ]
+
+            }
+            .into();
+        }
     };
+
+    let words = file_data.split_whitespace().collect::<Vec<_>>();
+
+    // A string will be exponded by `quote` into a string literal token.
+    // This is exactly what we want.
+    //
+    // See the `quote::quote` documentation for the interpolation syntax.
+    // Note we are interleaving ',` in between word literals.
+    //
+    let expanded = quote! {
+        [
+            #(#words),*
+        ]
+    };
+
+    // proc_macro2::TokenStream -> proc_macro::TokenStream
     expanded.into()
 }
 
