@@ -126,7 +126,7 @@ If you'd like to peek at some solutions, look at the `solutions` branch of this 
 
 ### Want more?
 
-This tutorial was inspired by David Tolnay's [proc-macro workshop]. There isn't a video of the workshop itself, but you can watch Jon Gjengset work on the exersises: [part 1][jonhoo-macros-1]; [part 2][jonhoo-macros-2].
+This tutorial was inspired by David Tolnay's [proc-macro workshop]. There isn't a video of the workshop itself, but you can watch Jon Gjengset [work on the exercises][jonhoo-macros].
 
 
 [cargo-expand]: https://github.com/dtolnay/cargo-expand
@@ -137,5 +137,4 @@ This tutorial was inspired by David Tolnay's [proc-macro workshop]. There isn't 
 [`compile_error!`]: https://doc.rust-lang.org/std/macro.compile_error.html
 [`trybuild`]: https://docs.rs/trybuild
 [proc-macro workshop]: https://github.com/dtolnay/proc-macro-workshop
-[jonhoo-macros-1]: https://www.youtube.com/watch?v=geovSK3wMB8
-[jonhoo-macros-2]: https://www.youtube.com/watch?v=KVWHT1TAirU
+[jonhoo-macros]: https://www.youtube.com/playlist?list=PLqbS7AVVErFgwC_HByFYblghsDsD5wZDv
