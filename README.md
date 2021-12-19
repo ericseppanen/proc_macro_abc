@@ -18,9 +18,9 @@ Macros should only be used when it would be impractical to write regular code. M
 #### Kinds of proc-macros
 
 There are three different flavors of proc-macros:
-- *derive macros* are used to create code after observing a data structure (a struct or enum). Usually this means implementing a trait, though there's no restriction on the code actually emitted (it can't rewrite the affected data structure, though).
-- attribute macros attach to some bit of existing Rust syntax (e.g. a data structure or function), and the macro output replaces that syntax.
-- function-like macros are called with parameters (like `vec!` or `assert!`). Unlike the other two kinds, they can return expressions. They can also be used to emit arbitrary code (e.g. impl blocks, functions, data structures, etc.)
+- *derive macros* are used to add code after observing a data structure (a struct or enum). Often this means implementing a trait, though there's no restriction on the code actually emitted (it can't rewrite the affected data structure, though).
+- *attribute macros* attach to some bit of existing Rust syntax (e.g. a data structure or function), and the macro output replaces that syntax.
+- *function-like macros* are called with parameters (like `vec!` or `assert!`). Unlike the other two kinds, they can return expressions. They can also be used to emit arbitrary code (e.g. impl blocks, functions, data structures, etc.)
 
 #### Crate organization when building proc-macros
 
@@ -63,9 +63,9 @@ Note that macro names exist in a separate namespace; that name will need to be i
 #### Errors and spans
 
 Macros do not return `Result`. A macro failure can either succeed, or return a compile error. There are three ways to return an error:
-- panic! can be used. It's not as pretty as the other options, though.
-- [compile_error!] can be used.
-- The [`proc_macro_error`] crate can be used.
+- `panic!` can be used. It's not as pretty as the other options, though.
+- `compile_error!` can be used.
+- The `proc_macro_error` crate can be used.
 
 Errors need to be associated with a `Span`, which describes a range of characters in the input file. All `syn` syntax nodes have an associated span; it should be easy to clone this if needed. `quote!` will automatically acquire the span of the entire macro input.
 
@@ -75,16 +75,16 @@ It's not yet possible (in July 2021) for to emit complex diagnostics that mentio
 
 There are many subtle hazards to think about when emitting code from a macro:
 - Traits, types, etc. may not be imported, or may be overriden or renamed. The most common example is that many modules define a `Result` type. If you need to refer to `Result` in a macro output, use `::std::result::Result`. If a symbol needs to be imported, do it in a context that won't leak to the outside.
-- Conflicting names may exist in the same scope. If you need to emit helper functions or data structures, obfuscate the names.
+- Conflicting names may exist in the same scope. If you need to emit helper functions or data structures, you may need to obfuscate the names or find a way to conceal your symbols in a local scope.
 - If returning an expression, the surrounding context may result in different evaluation than expected. 
-- Inputs may not be what you expect (e.g. you may expect `Foo` but the user specifies `::mylib::amod::Foo<'a, Vec<&'static str>>). It may take extra work to determine all of the possible valid inputs and emit the correct outputs.
-- There are many lints that may be triggered by macro outputs: unused code, wrong-case identifiers (camel case, snake case, etc.)
+- Inputs may not be what you expect (e.g. you may expect `Foo` but the user specifies `::mylib::amod::Foo<'a, Vec<&'static str>>`). It may take extra work to determine all of the possible valid inputs and emit the correct outputs.
+- There are many lints that may be triggered by macro outputs: unused code, wrong-case identifiers (camel case, snake case, etc.) You may want to disable some lints in the emitted code.
 
 #### Debugging macros
 
 Debugging macros can be an adventure. The experience is nowhere near as polished as developing regular Rust code. In general, more patience and much more careful coding will be required.
 
-To see the code produces by a macro, you can use [`cargo-expand`]. It can be interesting to run this against more well-established macro crates (e.g. `serde`)-- there are some useful tricks that can be learned this way.
+To see the code produces by a macro, you can use [cargo-expand]. It can be interesting to run this against more well-established macro crates (e.g. `serde`)-- there are some useful tricks that can be learned this way.
 
 Macros can print to stdout/stderr. It may be a little strange to see the compiler chattering at you while building, but a few strategic `dbg!(my_syn_node)` placements can be really helpful.
 
@@ -92,21 +92,18 @@ Rust-analyzer often behaves strangely while developing proc-macros. Some errors 
 
 #### Unit testing compile-time errors
 
-To test that a macro fails gracefully, and returns the expected error message, try the [`trybuild`] crate.
-
+To test that a macro fails gracefully, and returns the expected error message, use the [`trybuild`] crate.
 
 ### Exercises
 
-If you'd like to peek at some solutions, look at the `solutions` branch of this repo (<https://github.com/ericseppanen/proc_macro_abc>)
-
 Exercise 1:
-- Run `cargo test`; observe that it fails.
-- Find the TODO #1 comment in `derive_describe_struct`; add the missing code.
+- Run `cargo test`; the test will fail because some code is missing.
+- Find the `TODO #1` comment in `derive_describe_struct`; add the missing code.
   Verify that the unit test passes.
 
 Exercise 2:
 - Un-comment the describe_fail test. It will fail.
-- Find the TODO #2 comment in `derive_describe_struct`.
+- Find the `TODO #2` comment in `derive_describe_struct`.
   Use `compile_error!` to return an error instead of `panic!`.
   The unit test should pass if you get it right.
 
@@ -115,23 +112,30 @@ Exercise 3:
   number of fields in a struct. Add a unit test to verify that it works.
 
 Exercise 4:
-- Add the missing implementation of `file_words!` (marked by TODO comments).
-- Un-comment the unit test for file_words and verify it passes.
+- Add the missing implementation of `file_words!` (marked by `TODO` comments).
+- Un-comment `test_file_words` and verify the test passes.
 
 Exercise 5:
 - Enable the unit tests in `enum_ranges.rs`.
-- Add the missing implementations (marked by TODO comments).
-- Enable the top-level `test_enum_ranges` test and verify it passes.
+- Add the missing implementations (marked by `TODO` comments).
+- Enable `test_enum_ranges` and verify the test passes.
+
+### Solutions
+
+If you'd like to peek at some solutions, look at the `solutions` branch of this repo (<https://github.com/ericseppanen/proc_macro_abc>)
 
 ### Want more?
 
-https://github.com/dtolnay/proc-macro-workshop
+This tutorial was inspired by David Tolnay's [proc-macro workshop]. There isn't a video of the workshop itself, but you can watch Jon Gjengset work on the exersises: [part 1][jonhoo-macros-1]; [part 2][jonhoo-macros-2].
 
 
 [cargo-expand]: https://github.com/dtolnay/cargo-expand
-[`syn`]: https://docs.rs/syn/latest/syn/
-[`quote`]: https://docs.rs/quote/latest/quote/
+[`syn`]: https://docs.rs/syn
+[`quote`]: https://docs.rs/quote
 [`proc-macro2`]: https://docs.rs/proc-macro2/latest/proc_macro2/
 [`proc_macro_error`]: https://docs.rs/proc-macro-error/latest/proc_macro_error/
 [`compile_error!`]: https://doc.rust-lang.org/std/macro.compile_error.html
-[`trybuild`]: https://docs.rs/trybuild/latest/trybuild/
+[`trybuild`]: https://docs.rs/trybuild
+[proc-macro workshop]: https://github.com/dtolnay/proc-macro-workshop
+[jonhoo-macros-1]: https://www.youtube.com/watch?v=geovSK3wMB8
+[jonhoo-macros-2]: https://www.youtube.com/watch?v=KVWHT1TAirU
