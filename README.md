@@ -74,7 +74,7 @@ It's not yet possible (in July 2021) for to emit complex diagnostics that mentio
 #### Macro output hazards
 
 There are many subtle hazards to think about when emitting code from a macro:
-- Traits, types, etc. may not be imported, or may be overriden or renamed. The most common example is that many modules define a `Result` type. If you need to refer to `Result` in a macro output, use `::std::result::Result`. If a symbol needs to be imported, do it in a context that won't leak to the outside.
+- Traits, types, etc. may not be imported, or may be overriden or renamed. The most common example is that many modules define a `Result` type. If you need to refer to `Result` in a macro output, use `::core::result::Result`. If a symbol needs to be imported, do it in a context that won't leak to the outside.
 - Conflicting names may exist in the same scope. If you need to emit helper functions or data structures, you may need to obfuscate the names or find a way to conceal your symbols in a local scope.
 - If returning an expression, the surrounding context may result in different evaluation than expected. 
 - Inputs may not be what you expect (e.g. you may expect `Foo` but the user specifies `::mylib::amod::Foo<'a, Vec<&'static str>>`). It may take extra work to determine all of the possible valid inputs and emit the correct outputs.
